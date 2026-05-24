@@ -1,17 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>廁所位置地圖系統 (終極流暢版)</title>
+<html lang="zh-Hant"><head></head><body>HTML
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>廁所位置地圖系統 (終極優化版)</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent; /* 移除手機點擊時的藍色高亮陰影 */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -28,7 +29,6 @@ body {
     z-index: 1;
 }
 
-/* 左側控制面板 */
 .panel{
     position:absolute;
     top:15px;
@@ -41,7 +41,6 @@ body {
     width:260px;
 }
 
-/* 右側資料清單面板 */
 .list-panel {
     width: 320px;
     height: 100vh;
@@ -93,7 +92,6 @@ body {
 
 .no-data-text { color: #888; text-align: center; margin-top: 30px; font-size: 14px; }
 
-/* 程式碼檢視器浮動面板樣式 */
 .code-viewer-toggle {
     position: absolute;
     bottom: 20px;
@@ -129,22 +127,21 @@ button:hover{ background:#125aa0; }
 .danger{ background:#d32f2f; }
 .popup-btn { margin-top:8px; padding:4px 8px; background:#d32f2f; color:white; border:none; border-radius:4px; cursor:pointer; width:100%; }
 
-/* 手機 RWD 排版優化 */
+/* RWD 調整 */
 @media (max-width: 768px) {
     body { flex-direction: column; }
-    #map { height: 55vh; width: 100%; }
-    .list-panel { width: 100%; height: 45vh; border-left: none; border-top: 1px solid #ddd; }
+    #map { height: 50vh; width: 100%; }
+    .list-panel { width: 100%; height: 50vh; border-left: none; border-top: 1px solid #ddd; }
     .panel { position: relative; top: 0; left: 0; width: 100%; border-radius: 0; box-shadow: none; border-bottom: 1px solid #ccc; padding: 10px; }
     .panel input, .panel select { display: inline-block; width: 31%; margin-top: 0; margin-right: 1%; }
     .panel button { display: inline-block; width: 100%; margin-top: 8px; }
     .code-viewer-toggle { bottom: auto; top: 10px; right: 10px; left: auto; padding: 6px 10px; font-size: 12px; }
 }
 </style>
-</head>
 
-<body>
 
-<!-- 控制台 -->
+
+
 <div class="panel">
     <div class="title">🚻 廁所位置地圖</div>
     <input id="name" placeholder="地點(必填)">
@@ -157,20 +154,16 @@ button:hover{ background:#125aa0; }
     <button class="danger" onclick="clearAll()">🗑 清除快取重置</button>
 </div>
 
-<!-- 地圖 -->
-<div id="map"></div>
+<div id="map" class=""></div>
 
-<!-- 景點列表 -->
 <div class="list-panel">
     <div class="list-header">📋 目前點位清單</div>
     <div class="list-container" id="listContainer"></div>
 </div>
 
-<!-- 查看程式碼按鈕 -->
 <div class="code-viewer-toggle" onclick="toggleCodeModal(true)">🖥️ 複製代碼</div>
 
-<!-- 程式碼檢視視窗 -->
-<div class="code-modal" id="codeModal">
+<div class="code-modal" id="codeModal" style="display: none;">
     <div class="code-modal-header">
         <div class="code-modal-title">💻 內嵌資料的 HTML 程式碼</div>
         <div class="code-actions">
@@ -178,57 +171,103 @@ button:hover{ background:#125aa0; }
             <button class="code-btn btn-close" onclick="toggleCodeModal(false)">關閉</button>
         </div>
     </div>
-    <textarea class="code-area" id="codeTextArea" readonly></textarea>
+    <textarea class="code-area" id="codeTextArea" readonly=""></textarea>
 </div>
 
 <script>
-// 禁用 Leaflet 內部與觸控衝突的舊設定，啟用原生流暢縮放
+// 基礎點位資料
+var defaultData = [
+    {
+        "id": 1779630166457,
+        "name": "711",
+        "lat": 24.789919624136473,
+        "lng": 121.01339042186738,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779626154326,
+        "name": "星巴克",
+        "lat": 24.790752407359395,
+        "lng": 121.01352453231813,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779626178545,
+        "name": "露易莎",
+        "lat": 24.790426112844592,
+        "lng": 121.01486563682558,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779628101815,
+        "name": "全家",
+        "lat": 24.788828718357237,
+        "lng": 121.0123497247696,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628185692,
+        "name": "711",
+        "lat": 24.79173615577673,
+        "lng": 121.01159870624544,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628209733,
+        "name": "全家",
+        "lat": 24.790547864629602,
+        "lng": 121.0102951526642,
+        "type": "無障礙",
+        "note": "2樓"
+    }
+]; 
+
 var map = L.map('map', {
     tap: false, 
-    doubleClickZoom: false, // 🆕 關閉原本「雙擊放大地圖」的功能，改成拿來新增點位
+    doubleClickZoom: false, 
     touchZoom: true
 }).setView([24.7865, 121.0168], 16);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 var markers = [];
-var defaultData = []; 
-
 var localData = JSON.parse(localStorage.getItem("toilets_save") || "[]");
-var saved = defaultData.concat(localData);
 
+// 整合資料流，避免重複
+var saved = [...defaultData];
+localData.forEach(ld => {
+    if(!saved.some(sd => sd.id === ld.id)) {
+        saved.push(ld);
+    }
+});
+
+// 初始化載入
 saved.forEach(addMarker);
 updateList();
-generateCurrentCode();
 
 if(saved.length > 0) {
     map.setView([saved[0].lat, saved[0].lng], 16);
 }
 
-/* ===================================================
-   🎯 終極分流：電腦用點擊、手機用雙擊（快速點兩下）
-   =================================================== */
-
-// 1. 電腦端專用：滑鼠單擊點位直接新增（拖曳移動時不會誤觸）
+// 點擊事件分流
 map.on('click', function(e) {
-    // 排除手機觸控干擾
     if (e.originalEvent && (e.originalEvent.type === 'touchend' || window.innerWidth <= 768)) return; 
     handleMapClick(e.latlng);
 });
 
-// 2. 手機端專用：在螢幕上「快速連點兩下（雙擊）」新增點位
 map.on('dblclick', function(e) {
-    if(e.originalEvent) {
-        e.originalEvent.preventDefault(); // 阻止瀏覽器預設行為
-    }
+    if(e.originalEvent) e.originalEvent.preventDefault();
     handleMapClick(e.latlng);
 });
 
-// 實際處理新增點位的核心函式
 function handleMapClick(latlng) {
     let name = document.getElementById("name").value.trim();
     if(!name){
-        // 為了避免干擾手機滑動，手機上沒打名字就直接忽略不跳煩人的 alert
         if(window.innerWidth > 768) {
             alert("請先在左邊輸入「店名/地點」，再點擊地圖位置新增！");
         }
@@ -247,23 +286,21 @@ function handleMapClick(latlng) {
         note
     };
 
-    localData.push(data);
-    localStorage.setItem("toilets_save", JSON.stringify(localData));
+    if(!defaultData.some(d => d.id === data.id)) {
+        localData.push(data);
+        localStorage.setItem("toilets_save", JSON.stringify(localData));
+    }
     
     saved.push(data);
     addMarker(data);
     updateList();
-    generateCurrentCode();
     
     document.getElementById("name").value = "";
     document.getElementById("note").value = "";
 }
 
-/* 圖釘樣式 */
 function getIcon(type){
-    let color = type==="女廁" ? "#d32f2f" :
-                type==="無障礙" ? "#2e7d32" : "#1565c0";
-
+    let color = type==="女廁" ? "#d32f2f" : type==="無障礙" ? "#2e7d32" : "#1565c0";
     return L.divIcon({
         html:`<div style="width:16px;height:16px;background:${color};border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div>`,
         className: '',
@@ -272,7 +309,6 @@ function getIcon(type){
     });
 }
 
-/* 刪除 */
 window.deleteMarker = function(id, event){
     if(event) event.stopPropagation();
     map.closePopup();
@@ -290,23 +326,16 @@ window.deleteMarker = function(id, event){
 
     saved = saved.filter(s=>s.id!==id);
     updateList();
-    generateCurrentCode();
 };
 
-/* 加入標記 */
 function addMarker(data){
-    let marker = L.marker([data.lat, data.lng],{
-        icon: getIcon(data.type)
-    }).addTo(map);
-
+    let marker = L.marker([data.lat, data.lng],{ icon: getIcon(data.type) }).addTo(map);
     marker.bindPopup(
         `<b>${data.name}</b><br>標籤：${data.type}<br>${data.note ? '備註：' + data.note : ""}<br><button class="popup-btn" onclick="window.deleteMarker(${data.id})">刪除</button>`
     );
-
     markers.push({id: data.id, marker});
 }
 
-/* 更新列表 */
 function updateList() {
     const container = document.getElementById("listContainer");
     container.innerHTML = "";
@@ -335,19 +364,32 @@ function updateList() {
     });
 }
 
-/* 產生網頁程式碼 */
 function generateCurrentCode() {
-    let currentHtml = document.documentElement.outerHTML;
+    let currentDocString = document.documentElement.outerHTML;
     let dataString = JSON.stringify(saved, null, 4);
 
-    let updatedHtml = currentHtml.replace(
+    let updatedHtml = currentDocString.replace(
         /var defaultData = \[\s*([\s\S]*?)\s*\];/g, 
         "var defaultData = " + dataString + ";"
     );
 
-    updatedHtml = updatedHtml.replace(/style="display: flex;"/g, 'style="display: none;"');
+    let parser = new DOMParser();
+    let cleanDoc = parser.parseFromString(updatedHtml, "text/html");
 
-    let finalCode = "<!DOCTYPE html>\n" + updatedHtml;
+    let mapDiv = cleanDoc.getElementById("map");
+    if(mapDiv) {
+        mapDiv.innerHTML = "";
+        mapDiv.className = "";
+        mapDiv.removeAttribute("style");
+        mapDiv.removeAttribute("tabindex");
+    }
+    let listDiv = cleanDoc.getElementById("listContainer");
+    if(listDiv) listDiv.innerHTML = "";
+
+    let modalDiv = cleanDoc.getElementById("codeModal");
+    if(modalDiv) modalDiv.style.display = "none";
+
+    let finalCode = "<!DOCTYPE html>\n" + cleanDoc.documentElement.outerHTML;
     document.getElementById("codeTextArea").value = finalCode;
 }
 
@@ -365,16 +407,19 @@ function copyCode() {
     const textarea = document.getElementById("codeTextArea");
     textarea.select();
     textarea.setSelectionRange(0, 99999);
-    document.execCommand("copy");
-    alert("🚀 程式碼已成功複製！");
+    try {
+        document.execCommand("copy");
+        alert("🚀 程式碼已成功複製！在新網頁貼上即包含當前最新資料！");
+    } catch (err) {
+        alert("複製失敗，請手動全選複製。");
+    }
 }
 
 function clearAll(){
-    if(!confirm("確定清除全部資料？")) return;
+    if(!confirm("確定清除全部資料並還原初始狀態？")) return;
     localStorage.removeItem("toilets_save");
     location.reload();
 }
 </script>
 
-</body>
-</html>
+</body></html>

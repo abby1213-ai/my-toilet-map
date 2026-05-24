@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>廁所位置地圖系統 (手機優化版)</title>
+<title>廁所位置地圖系統 (完美相容版)</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -128,7 +128,7 @@ button:hover{ background:#125aa0; }
 .danger{ background:#d32f2f; }
 .popup-btn { margin-top:8px; padding:4px 8px; background:#d32f2f; color:white; border:none; border-radius:4px; cursor:pointer; width:100%; }
 
-/* 📱 手機 RWD 排版優化 (當螢幕寬度小於 768px 時自動切換) */
+/* 手機 RWD 排版優化 */
 @media (max-width: 768px) {
     body { flex-direction: column; }
     #map { height: 60vh; width: 100%; }
@@ -143,7 +143,6 @@ button:hover{ background:#125aa0; }
 
 <body>
 
-<!-- 上方/左側主控制台 -->
 <div class="panel">
     <div class="title">🚻 廁所位置地圖</div>
     <input id="name" placeholder="地點(必填)">
@@ -156,19 +155,15 @@ button:hover{ background:#125aa0; }
     <button class="danger" onclick="clearAll()">🗑 清除快取重置</button>
 </div>
 
-<!-- 地圖 -->
 <div id="map"></div>
 
-<!-- 下方/右側景點列表 -->
 <div class="list-panel">
     <div class="list-header">📋 目前點位清單</div>
     <div class="list-container" id="listContainer"></div>
 </div>
 
-<!-- 查看程式碼按鈕 -->
 <div class="code-viewer-toggle" onclick="toggleCodeModal(true)">🖥️ 複製代碼</div>
 
-<!-- 程式碼檢視視窗 -->
 <div class="code-modal" id="codeModal">
     <div class="code-modal-header">
         <div class="code-modal-title">💻 內嵌資料的 HTML 程式碼</div>
@@ -181,16 +176,15 @@ button:hover{ background:#125aa0; }
 </div>
 
 <script>
-// 初始化地圖，並開啟手機雙指縮放功能與觸控支援
 var map = L.map('map', {
-    tap: false, // 🆕 關閉 Leaflet 預設的 tap 事件，防止與手機瀏覽器點擊衝突
+    tap: false, // 防止手機瀏覽器衝突
     touchZoom: true
 }).setView([24.7865, 121.0168], 16);
 
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 var markers = [];
-var defaultData = []; // 💡 複製程式碼到新網頁後，資料會自動填在這裡
+var defaultData = []; // 💡 新生成的程式碼會將資料填在這裡
 
 var localData = JSON.parse(localStorage.getItem("toilets_save") || "[]");
 var saved = defaultData.concat(localData);
@@ -203,35 +197,38 @@ if(saved.length > 0) {
     map.setView([saved[0].lat, saved[0].lng], 16);
 }
 
-/* 🆕 解決手機無法移動地圖的核心邏輯：
-   在電腦上用「點擊」新增點位；在手機上則用「長按 1 秒」來新增點位。
-   這樣手機單指滑動時，就能100%拿來移動地圖，不會觸發新增。 */
-var pressTimer;
+/* ===================================================
+   🆕 電腦與手機事件完美並存分流邏輯
+   =================================================== */
 
-// 滑鼠/手指點下去時開始計時
-map.on('mousedown touchstart', function(e) {
-    // 如果是電腦滑鼠點擊，直接觸發，不需要長按
-    if (e.originalEvent.type === 'mousedown') {
-        handleMapClick(e.latlng);
-        return;
-    }
-    
-    // 如果是手機觸控，啟動長按計時器（1000毫秒 = 1秒）
-    pressTimer = window.setTimeout(function() {
-        handleMapClick(e.latlng);
-    }, 1000);
+// 1. 電腦端專用：直接點擊地圖新增（拖曳移動時不會觸發）
+map.on('click', function(e) {
+    // 排除手機觸控引發的 click
+    if (e.originalEvent && e.originalEvent.type === 'touchend') return; 
+    handleMapClick(e.latlng);
 });
 
-// 如果手指在地圖上滑動（代表是在移動地圖）或者提早放開，就取消新增點位計時器
-map.on('mousemove touchmove mouseup touchend contextmenu', function() {
+// 2. 手機端專用：長按地圖 1 秒新增
+var pressTimer;
+map.on('touchstart', function(e) {
+    pressTimer = window.setTimeout(function() {
+        handleMapClick(e.latlng);
+    }, 1000); // 1秒
+});
+
+// 手機滑動地圖、提早放開、或者放大縮小時，立刻取消長按計時器
+map.on('touchmove touchend touchcancel zoomstart movestart', function() {
     clearTimeout(pressTimer);
 });
 
-// 實際處理新增點位的函式
+// 實際處理新增點位的核心函式
 function handleMapClick(latlng) {
     let name = document.getElementById("name").value.trim();
     if(!name){
-        // 手機上未輸入名字時，不彈出煩人的 alert 阻擋地圖滑動
+        // 未輸入店名時，如果是電腦端點擊，則給提示防呆
+        if(window.innerWidth > 768) {
+            alert("請先在左邊輸入「店名/地點」，再點擊地圖位置新增！");
+        }
         return;
     }
 
@@ -312,7 +309,7 @@ function updateList() {
     container.innerHTML = "";
 
     if (saved.length === 0) {
-        container.innerHTML = `<div class="no-data-text">📭 目前沒有資料<br>電腦點擊/手機長按地圖新增</div>`;
+        container.innerHTML = `<div class="no-data-text">📭 目前沒有資料<br>電腦點擊 / 手機長按地圖新增</div>`;
         return;
     }
 
@@ -364,7 +361,7 @@ function toggleCodeModal(show) {
 function copyCode() {
     const textarea = document.getElementById("codeTextArea");
     textarea.select();
-    textarea.setSelectionRange(0, 99999); // 確保手機全選
+    textarea.setSelectionRange(0, 99999);
     document.execCommand("copy");
     alert("🚀 程式碼已成功複製！");
 }

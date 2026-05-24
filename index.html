@@ -1,21 +1,28 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
+<html lang="zh-Hant"><head>
 <meta charset="UTF-8">
-<title>廁所位置地圖系統</title>
+<title>廁所位置地圖系統 (含原始碼檢視)</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
+* {
+    box-sizing: border-box;
+}
+
 body {
     margin:0;
     font-family: Arial, sans-serif;
+    display: flex;
 }
 
-#map { height: 100vh; }
+#map { 
+    height: 100vh; 
+    flex-grow: 1;
+}
 
-/* 面板 */
+/* 左側控制面板 */
 .panel{
     position:absolute;
     top:15px;
@@ -28,65 +35,245 @@ body {
     width:260px;
 }
 
-/* 標題 */
-.title{
-    font-size:16px;
-    font-weight:bold;
-    margin-bottom:8px;
+/* 右側資料清單面板 */
+.list-panel {
+    width: 320px;
+    height: 100vh;
+    background: #f8f9fa;
+    border-left: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    z-index: 999;
 }
 
-/* 表單 */
-input, select, button{
-    width:100%;
-    margin-top:6px;
-    padding:7px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    font-size:14px;
+.list-header {
+    background: #1976d2;
+    color: white;
+    padding: 15px;
+    font-size: 16px;
+    font-weight: bold;
 }
 
-/* 按鈕 */
-button{
-    background:#1976d2;
-    color:white;
-    border:none;
-    cursor:pointer;
+.list-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
 }
 
-button:hover{
-    background:#125aa0;
+.toilet-item {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+    position: relative;
 }
 
-.secondary{
-    background:#555;
+.toilet-item:hover {
+    background: #f0f7ff;
 }
 
-.danger{
-    background:#d32f2f;
+.toilet-item-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #333;
+    padding-right: 30px;
 }
+
+.toilet-item-tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: white;
+    margin-top: 5px;
+}
+
+.tag-男廁 { background: #1565c0; }
+.tag-女廁 { background: #d32f2f; }
+.tag-無障礙 { background: #2e7d32; }
+
+.toilet-item-note {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.item-delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #c62828;
+    cursor: pointer;
+    font-size: 14px;
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.no-data-text {
+    color: #888;
+    text-align: center;
+    margin-top: 30px;
+    font-size: 14px;
+}
+
+/* 🆕 程式碼檢視器浮動面板樣式 */
+.code-viewer-toggle {
+    position: absolute;
+    bottom: 20px;
+    left: 15px;
+    z-index: 1000;
+    background: #333;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.code-modal {
+    display: none;
+    position: fixed;
+    top: 10vh;
+    left: 10vw;
+    width: 80vw;
+    height: 80vh;
+    background: #272822;
+    z-index: 2000;
+    border-radius: 12px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.5);
+    flex-direction: column;
+    padding: 15px;
+}
+
+.code-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: white;
+    margin-bottom: 10px;
+}
+
+.code-modal-title {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.code-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.code-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-copy { background: #a6e22e; color: #000; font-weight: bold; }
+.btn-close { background: #f92672; color: #fff; }
+
+textarea.code-area {
+    flex-grow: 1;
+    background: #1e1e1e;
+    color: #f8f8f2;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    padding: 12px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    resize: none;
+    white-space: pre;
+    overflow: auto;
+}
+
+/* 通用元件微調 */
+.title{ font-size:16px; font-weight:bold; margin-bottom:8px; }
+input, select, button{ width:100%; margin-top:6px; padding:7px; border-radius:6px; border:1px solid #ccc; font-size:14px; }
+button{ background:#1976d2; color:white; border:none; cursor:pointer; }
+button:hover{ background:#125aa0; }
+.danger{ background:#d32f2f; }
+.danger:hover{ background:#b71c1c; }
+.popup-btn { margin-top:8px; padding:4px 8px; background:#d32f2f; color:white; border:none; border-radius:4px; cursor:pointer; width:100%; }
 </style>
 </head>
 
-<body>
+<body class="">
 
+<!-- 左側主控制台 -->
 <div class="panel">
-<div class="title">🚻 廁所位置地圖</div>
-
-<input id="name" placeholder="店名 / 地點（必填）">
-<select id="type">
-<option value="男廁">男廁</option>
-<option value="女廁">女廁</option>
-<option value="無障礙">無障礙</option>
-</select>
-
-<input id="note" placeholder="備註">
-
-<button onclick="saveData()">💾 存檔下載</button>
-<button class="secondary" onclick="loadData()">📂 匯入資料</button>
-<button class="danger" onclick="clearAll()">🗑 清除全部</button>
+    <div class="title">🚻 廁所位置地圖</div>
+    <input id="name" placeholder="店名 / 地點（必填）">
+    <select id="type">
+        <option value="男廁">男廁</option>
+        <option value="女廁">女廁</option>
+        <option value="無障礙">無障礙</option>
+    </select>
+    <input id="note" placeholder="備註">
+    <button class="danger" onclick="clearAll()">🗑 清除網頁全部快取</button>
 </div>
 
-<div id="map"></div>
+<!-- 地圖 -->
+<div id="map" class="leaflet-container leaflet-touch leaflet-fade-anim leaflet-grab leaflet-touch-drag leaflet-touch-zoom" tabindex="0" style="position: relative; outline-style: none;"><div class="leaflet-pane leaflet-map-pane" style="transform: translate3d(1580px, 633px, 0px);"><div class="leaflet-pane leaflet-tile-pane"><div class="leaflet-layer " style="z-index: 1; opacity: 1;"><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 18; transform: translate3d(230px, -315px, 0px) scale(1);"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219189/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1142px, 85px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219189/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1142px, -171px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219188/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1398px, 85px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219190/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-886px, 85px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219189/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1142px, 341px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219188/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1398px, -171px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219190/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-886px, -171px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219188/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1398px, 341px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219190/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-886px, 341px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219189/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1142px, -427px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219187/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1654px, 85px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219191/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-630px, 85px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219189/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1142px, 597px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219188/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1398px, -427px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219190/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-886px, -427px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219187/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1654px, -171px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219191/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-630px, -171px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219187/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1654px, 341px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219191/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-630px, 341px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219188/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1398px, 597px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219190/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-886px, 597px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219187/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1654px, -427px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219191/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-630px, -427px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219187/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1654px, 597px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219191/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-630px, 597px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219186/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1910px, 85px, 0px); opacity: 1;"><img alt="" src="https://b.basemaps.cartocdn.com/light_all/18/219192/112429.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-374px, 85px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219186/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1910px, -171px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219192/112428.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-374px, -171px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219186/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1910px, 341px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219192/112430.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-374px, 341px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219186/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1910px, -427px, 0px); opacity: 1;"><img alt="" src="https://c.basemaps.cartocdn.com/light_all/18/219192/112427.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-374px, -427px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219186/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-1910px, 597px, 0px); opacity: 1;"><img alt="" src="https://a.basemaps.cartocdn.com/light_all/18/219192/112431.png" class="leaflet-tile leaflet-tile-loaded" style="width: 256px; height: 256px; transform: translate3d(-374px, 597px, 0px); opacity: 1;"></div><div class="leaflet-tile-container leaflet-zoom-animated" style="z-index: 17; transform: translate3d(230px, -314px, 0px) scale(2);"></div></div></div><div class="leaflet-pane leaflet-overlay-pane"></div><div class="leaflet-pane leaflet-shadow-pane"></div><div class="leaflet-pane leaflet-marker-pane"><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-308px, -287px, 0px); z-index: -287;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-58px, -220px, 0px); z-index: -220;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-327px, -105px, 0px); z-index: -105;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-527px, 108px, 0px); z-index: 108;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-667px, -489px, 0px); z-index: -489;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div><div class="leaflet-marker-icon leaflet-zoom-animated leaflet-interactive" tabindex="0" role="button" style="margin-left: -8px; margin-top: -8px; width: 16px; height: 16px; transform: translate3d(-910px, -245px, 0px); z-index: -245;"><div style="width:16px;height:16px;background:#2e7d32;border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div></div></div><div class="leaflet-pane leaflet-tooltip-pane"></div><div class="leaflet-pane leaflet-popup-pane"></div><div class="leaflet-proxy leaflet-zoom-animated" style="transform: translate3d(5.61125e+07px, 2.87819e+07px, 0px) scale(131072);"></div></div><div class="leaflet-control-container"><div class="leaflet-top leaflet-left"><div class="leaflet-control-zoom leaflet-bar leaflet-control"><a class="leaflet-control-zoom-in leaflet-disabled" href="#" title="Zoom in" role="button" aria-label="Zoom in" aria-disabled="true"><span aria-hidden="true">+</span></a><a class="leaflet-control-zoom-out" href="#" title="Zoom out" role="button" aria-label="Zoom out" aria-disabled="false"><span aria-hidden="true">−</span></a></div></div><div class="leaflet-top leaflet-right"></div><div class="leaflet-bottom leaflet-left"></div><div class="leaflet-bottom leaflet-right"><div class="leaflet-control-attribution leaflet-control"><a href="https://leafletjs.com" title="A JavaScript library for interactive maps"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="8" viewBox="0 0 12 8" class="leaflet-attribution-flag"><path fill="#4C7BE1" d="M0 0h12v4H0z"></path><path fill="#FFD500" d="M0 4h12v3H0z"></path><path fill="#E0BC00" d="M0 7h12v1H0z"></path></svg> Leaflet</a></div></div></div></div>
+
+<!-- 右側景點列表 -->
+<div class="list-panel">
+    <div class="list-header">📋 目前點位清單</div>
+    <div class="list-container" id="listContainer"><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779626154326, event)">🗑</button>
+            <div class="toilet-item-title">星巴克</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            <div class="toilet-item-note">📝 可能須低消</div>
+        </div><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779626178545, event)">🗑</button>
+            <div class="toilet-item-title">露易莎</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            <div class="toilet-item-note">📝 可能須低消</div>
+        </div><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779628085708, event)">🗑</button>
+            <div class="toilet-item-title">711</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            
+        </div><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779628101815, event)">🗑</button>
+            <div class="toilet-item-title">全家</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            
+        </div><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779628185692, event)">🗑</button>
+            <div class="toilet-item-title">711</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            
+        </div><div class="toilet-item">
+            <button class="item-delete-btn" onclick="window.deleteMarker(1779628209733, event)">🗑</button>
+            <div class="toilet-item-title">全家</div>
+            <span class="toilet-item-tag tag-無障礙">無障礙</span>
+            <div class="toilet-item-note">📝 2樓</div>
+        </div></div>
+</div>
+
+<!-- 🆕 底部「查看程式碼」按鈕 -->
+<div class="code-viewer-toggle" onclick="toggleCodeModal(true)">🖥️ 查看 / 複製目前原始碼</div>
+
+<!-- 🆕 彈出的程式碼檢視視窗 -->
+<div class="code-modal" id="codeModal" style="display: none;">
+    <div class="code-modal-header">
+        <div class="code-modal-title">💻 當前網頁 HTML 程式碼（已自動嵌入您標註的點位）</div>
+        <div class="code-actions">
+            <button class="code-btn btn-copy" onclick="copyCode()">📋 複製全部代碼</button>
+            <button class="code-btn btn-close" onclick="toggleCodeModal(false)">關閉</button>
+        </div>
+    </div>
+    <textarea class="code-area" id="codeTextArea" readonly=""></textarea>
+</div>
 
 <script>
 var map = L.map('map').setView([24.7865, 121.0168], 16);
@@ -94,68 +281,124 @@ var map = L.map('map').setView([24.7865, 121.0168], 16);
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
 var markers = [];
-var saved = JSON.parse(localStorage.getItem("toilets_save") || "[]");
 
+// ===================================================
+// 💡 預設資料庫：當你在下方面板複製程式碼並存成新網頁時，
+// 這裡的陣列就會自動填滿你當時標註的所有點！
+// ===================================================
+var defaultData = [
+    {
+        "id": 1779626154326,
+        "name": "星巴克",
+        "lat": 24.790752407359395,
+        "lng": 121.01352453231813,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779626178545,
+        "name": "露易莎",
+        "lat": 24.790426112844592,
+        "lng": 121.01486563682558,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779628085708,
+        "name": "711",
+        "lat": 24.789866053094514,
+        "lng": 121.01342260837556,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628101815,
+        "name": "全家",
+        "lat": 24.788828718357237,
+        "lng": 121.0123497247696,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628185692,
+        "name": "711",
+        "lat": 24.79173615577673,
+        "lng": 121.01159870624544,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628209733,
+        "name": "全家",
+        "lat": 24.790547864629602,
+        "lng": 121.0102951526642,
+        "type": "無障礙",
+        "note": "2樓"
+    }
+];
+
+var localData = JSON.parse(localStorage.getItem("toilets_save") || "[]");
+var saved = defaultData.concat(localData);
+
+// 繪製與渲染
 saved.forEach(addMarker);
+updateList();
+generateCurrentCode(); // 🆕 初始化時先產生一次程式碼
+
+if(saved.length > 0) {
+    map.setView([saved[0].lat, saved[0].lng], 16);
+}
 
 /* 點地圖新增 */
 map.on('click', function(e){
-    let name = document.getElementById("name").value;
+    let name = document.getElementById("name").value.trim();
     if(!name){
-        alert("請輸入店名");
+        alert("請先在左邊輸入「店名/地點」，再點擊地圖位置新增！");
         return;
     }
 
     let type = document.getElementById("type").value;
-    let note = document.getElementById("note").value;
+    let note = document.getElementById("note").value.trim();
 
     let data = {
         id: Date.now(),
         name,
-        lat:e.latlng.lat,
-        lng:e.latlng.lng,
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
         type,
         note
     };
 
+    localData.push(data);
+    localStorage.setItem("toilets_save", JSON.stringify(localData));
+    
     saved.push(data);
-    localStorage.setItem("toilets_save", JSON.stringify(saved));
     addMarker(data);
+    updateList();
+    generateCurrentCode(); // 🆕 資料變動，即時更新程式碼內容
+    
+    document.getElementById("name").value = "";
+    document.getElementById("note").value = "";
 });
 
-/* 圖釘 */
+/* 圖釘樣式 */
 function getIcon(type){
-    let color = type==="女廁" ? "red" :
-                type==="無障礙" ? "green" : "blue";
+    let color = type==="女廁" ? "#d32f2f" :
+                type==="無障礙" ? "#2e7d32" : "#1565c0";
 
     return L.divIcon({
-        html:`<div style="
-            width:14px;height:14px;
-            background:${color};
-            border-radius:50%;
-            border:2px solid white;
-        "></div>`
+        html:`<div style="width:16px;height:16px;background:${color};border-radius:50%;border:2px solid white;box-shadow: 0 1px 4px rgba(0,0,0,0.3);"></div>`,
+        className: '',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8]
     });
 }
 
-/* 加入標記 */
-function addMarker(data){
-    let marker = L.marker([data.lat,data.lng],{
-        icon:getIcon(data.type)
-    }).addTo(map);
-
-    marker.bindPopup(
-        `<b>${data.name}</b><br>
-        ${data.type}<br>
-        ${data.note || ""}<br>
-        <button onclick="deleteMarker(${data.id})">刪除</button>`
-    );
-
-    markers.push({id:data.id, marker});
-}
-
 /* 刪除 */
-function deleteMarker(id){
+window.deleteMarker = function(id, event){
+    if(event) event.stopPropagation();
+    map.closePopup();
+
     markers = markers.filter(m=>{
         if(m.id===id){
             map.removeLayer(m.marker);
@@ -164,56 +407,152 @@ function deleteMarker(id){
         return true;
     });
 
+    localData = localData.filter(l=>l.id!==id);
+    localStorage.setItem("toilets_save", JSON.stringify(localData));
+
     saved = saved.filter(s=>s.id!==id);
-    localStorage.setItem("toilets_save", JSON.stringify(saved));
+    updateList();
+    generateCurrentCode(); // 🆕 資料變動，即時更新程式碼內容
+};
+
+/* 加入標記 */
+function addMarker(data){
+    let marker = L.marker([data.lat, data.lng],{
+        icon: getIcon(data.type)
+    }).addTo(map);
+
+    marker.bindPopup(
+        `<b>${data.name}</b><br>標籤：${data.type}<br>${data.note ? '備註：' + data.note : ""}<br><button class="popup-btn" onclick="window.deleteMarker(${data.id})">刪除</button>`
+    );
+
+    markers.push({id: data.id, marker});
 }
 
-/* 清除 */
+/* 更新列表 */
+function updateList() {
+    const container = document.getElementById("listContainer");
+    container.innerHTML = "";
+
+    if (saved.length === 0) {
+        container.innerHTML = `<div class="no-data-text">📭 目前沒有點位資料<br>請點擊地圖新增</div>`;
+        return;
+    }
+
+    saved.forEach(item => {
+        let div = document.createElement("div");
+        div.className = "toilet-item";
+        div.onclick = () => {
+            map.setView([item.lat, item.lng], 17);
+            let targetMarker = markers.find(m => m.id === item.id);
+            if(targetMarker) targetMarker.marker.openPopup();
+        };
+
+        div.innerHTML = `
+            <button class="item-delete-btn" onclick="window.deleteMarker(${item.id}, event)">🗑</button>
+            <div class="toilet-item-title">${item.name}</div>
+            <span class="toilet-item-tag tag-${item.type}">${item.type}</span>
+            ${item.note ? `<div class="toilet-item-note">📝 ${item.note}</div>` : ""}
+        `;
+        container.appendChild(div);
+    });
+}
+
+/* 🆕 核心：抓取當前網頁，並組合出包含新點位的完整程式碼 */
+function generateCurrentCode() {
+    // 取得目前整個網頁的 HTML 外殼
+    let currentHtml = document.documentElement.outerHTML;
+
+    // 將資料轉成格式化漂亮的 JSON 字串
+    let dataString = JSON.stringify(saved, null, 4);
+
+    // 用正規表達式把網頁裡的 `var defaultData = [
+    {
+        "id": 1779626154326,
+        "name": "星巴克",
+        "lat": 24.790752407359395,
+        "lng": 121.01352453231813,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779626178545,
+        "name": "露易莎",
+        "lat": 24.790426112844592,
+        "lng": 121.01486563682558,
+        "type": "無障礙",
+        "note": "可能須低消"
+    },
+    {
+        "id": 1779628085708,
+        "name": "711",
+        "lat": 24.789866053094514,
+        "lng": 121.01342260837556,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628101815,
+        "name": "全家",
+        "lat": 24.788828718357237,
+        "lng": 121.0123497247696,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628185692,
+        "name": "711",
+        "lat": 24.79173615577673,
+        "lng": 121.01159870624544,
+        "type": "無障礙",
+        "note": ""
+    },
+    {
+        "id": 1779628209733,
+        "name": "全家",
+        "lat": 24.790547864629602,
+        "lng": 121.0102951526642,
+        "type": "無障礙",
+        "note": "2樓"
+    }
+];` 換成最新有資料的狀態
+    let updatedHtml = currentHtml.replace(
+        /var defaultData = \[\s*([\s\S]*?)\s*\];/g, 
+        "var defaultData = " + dataString + ";"
+    );
+
+    // 順便把彈出視窗跟文字框本身在原始碼裡的狀態清空，確保新網頁開起來時是乾淨的
+    updatedHtml = updatedHtml.replace(/style="display: none;"/g, 'style="display: none;"');
+
+    let finalCode = "<!DOCTYPE html>\n" + updatedHtml;
+    document.getElementById("codeTextArea").value = finalCode;
+}
+
+/* 🆕 控制彈出視窗顯示/隱藏 */
+function toggleCodeModal(show) {
+    const modal = document.getElementById("codeModal");
+    if(show) {
+        generateCurrentCode(); // 打開時再次重新整理確保最新
+        modal.style.display = "flex";
+    } else {
+        modal.style.display = "none";
+    }
+}
+
+/* 🆕 一鍵複製功能 */
+function copyCode() {
+    const textarea = document.getElementById("codeTextArea");
+    textarea.select();
+    document.execCommand("copy");
+    alert("🚀 程式碼已成功複製到剪貼簿！您可以直接開一個新的空白檔案貼上了！");
+}
+
+/* 清除快取 */
 function clearAll(){
-    if(!confirm("確定清除全部資料？")) return;
+    if(!confirm("確定清除本地快取？")) return;
     localStorage.removeItem("toilets_save");
     location.reload();
 }
-
-/* 存檔 */
-function saveData(){
-    let blob = new Blob([JSON.stringify(saved, null, 2)], {type:"application/json"});
-    let url = URL.createObjectURL(blob);
-
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "toilet_data.json";
-    a.click();
-}
-
-/* 匯入 */
-function loadData(){
-    let input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-
-    input.onchange = e => {
-        let file = e.target.files[0];
-        let reader = new FileReader();
-
-        reader.onload = function(){
-            let data = JSON.parse(reader.result);
-
-            markers.forEach(m=>map.removeLayer(m.marker));
-            markers = [];
-
-            saved = data;
-            localStorage.setItem("toilets_save", JSON.stringify(saved));
-
-            saved.forEach(addMarker);
-        };
-
-        reader.readAsText(file);
-    };
-
-    input.click();
-}
 </script>
 
-</body>
-</html>
+
+</body></html>

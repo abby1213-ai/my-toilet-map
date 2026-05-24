@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>廁所位置地圖系統</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<style>
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+}
+
+#map { height: 100vh; }
+
+/* 面板 */
+.panel{
+    position:absolute;
+    top:15px;
+    left:15px;
+    background:white;
+    padding:14px;
+    border-radius:10px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.2);
+    z-index:1000;
+    width:260px;
+}
+
+/* 標題 */
+.title{
+    font-size:16px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+/* 表單 */
+input, select, button{
+    width:100%;
+    margin-top:6px;
+    padding:7px;
+    border-radius:6px;
+    border:1px solid #ccc;
+    font-size:14px;
+}
+
+/* 按鈕 */
+button{
+    background:#1976d2;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#125aa0;
+}
+
+.secondary{
+    background:#555;
+}
+
+.danger{
+    background:#d32f2f;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+<div class="title">🚻 廁所位置地圖</div>
+
+<input id="name" placeholder="店名 / 地點（必填）">
+<select id="type">
+<option value="男廁">男廁</option>
+<option value="女廁">女廁</option>
+<option value="無障礙">無障礙</option>
+</select>
+
+<input id="note" placeholder="備註">
+
+<button onclick="saveData()">💾 存檔下載</button>
+<button class="secondary" onclick="loadData()">📂 匯入資料</button>
+<button class="danger" onclick="clearAll()">🗑 清除全部</button>
+</div>
+
+<div id="map"></div>
+
+<script>
+var map = L.map('map').setView([24.7865, 121.0168], 16);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+var markers = [];
+var saved = JSON.parse(localStorage.getItem("toilets_save") || "[]");
+
+saved.forEach(addMarker);
+
+/* 點地圖新增 */
+map.on('click', function(e){
+    let name = document.getElementById("name").value;
+    if(!name){
+        alert("請輸入店名");
+        return;
+    }
+
+    let type = document.getElementById("type").value;
+    let note = document.getElementById("note").value;
+
+    let data = {
+        id: Date.now(),
+        name,
+        lat:e.latlng.lat,
+        lng:e.latlng.lng,
+        type,
+        note
+    };
+
+    saved.push(data);
+    localStorage.setItem("toilets_save", JSON.stringify(saved));
+    addMarker(data);
+});
+
+/* 圖釘 */
+function getIcon(type){
+    let color = type==="女廁" ? "red" :
+                type==="無障礙" ? "green" : "blue";
+
+    return L.divIcon({
+        html:`<div style="
+            width:14px;height:14px;
+            background:${color};
+            border-radius:50%;
+            border:2px solid white;
+        "></div>`
+    });
+}
+
+/* 加入標記 */
+function addMarker(data){
+    let marker = L.marker([data.lat,data.lng],{
+        icon:getIcon(data.type)
+    }).addTo(map);
+
+    marker.bindPopup(
+        `<b>${data.name}</b><br>
+        ${data.type}<br>
+        ${data.note || ""}<br>
+        <button onclick="deleteMarker(${data.id})">刪除</button>`
+    );
+
+    markers.push({id:data.id, marker});
+}
+
+/* 刪除 */
+function deleteMarker(id){
+    markers = markers.filter(m=>{
+        if(m.id===id){
+            map.removeLayer(m.marker);
+            return false;
+        }
+        return true;
+    });
+
+    saved = saved.filter(s=>s.id!==id);
+    localStorage.setItem("toilets_save", JSON.stringify(saved));
+}
+
+/* 清除 */
+function clearAll(){
+    if(!confirm("確定清除全部資料？")) return;
+    localStorage.removeItem("toilets_save");
+    location.reload();
+}
+
+/* 存檔 */
+function saveData(){
+    let blob = new Blob([JSON.stringify(saved, null, 2)], {type:"application/json"});
+    let url = URL.createObjectURL(blob);
+
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "toilet_data.json";
+    a.click();
+}
+
+/* 匯入 */
+function loadData(){
+    let input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.onchange = e => {
+        let file = e.target.files[0];
+        let reader = new FileReader();
+
+        reader.onload = function(){
+            let data = JSON.parse(reader.result);
+
+            markers.forEach(m=>map.removeLayer(m.marker));
+            markers = [];
+
+            saved = data;
+            localStorage.setItem("toilets_save", JSON.stringify(saved));
+
+            saved.forEach(addMarker);
+        };
+
+        reader.readAsText(file);
+    };
+
+    input.click();
+}
+</script>
+
+</body>
+</html>
